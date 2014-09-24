@@ -7,5 +7,9 @@
     "test": "mocha"
   },
   "author": "Gabriel Wicke <gwicke@wikimedia.org>",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "bluebird": "^2.3.2",
+    "request": "^2.44.0"
+  }
 }
