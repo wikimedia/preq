@@ -43,24 +43,36 @@ function wrap(method) {
         }
         return new Promise(function(resolve, reject) {
             var cb = function(err, res) {
-                if (err) {
-                    reject({
-                        status: 500,
-                        body: {
-                            type: 'unknown_error',
-                            err: err.toString(),
-                            stack: e.stack
-                        }
-                    });
+                if (err || !res) {
+                    if (!err) {
+                        err = new Error('Response error');
+                        err.response = {
+                            status: 500,
+                            body: {
+                                type: 'empty_response',
+                            }
+                        };
+                    }
+                    return reject(err);
                 }
-                res.status = res.statusCode;
-                res.statusCode = undefined;
-                res.request = undefined;
+                if (res.body && res.headers
+                        && /^application\/json/.test(res.headers['content-type'])) {
+                    res.body = JSON.decode(res.body);
+                }
 
-                if (res.status >= 400) {
-                    return reject(res);
+                var ourRes = {
+                    status: res.statusCode,
+                    headers: res.headers,
+                    body: res.body
+                };
+
+                if (ourRes.status >= 400) {
+                    var e = new Error('Response error ' + ourRes.status + ', see .response');
+                    e.response = ourRes;
+                    reject(e);
+                } else {
+                    resolve(ourRes);
                 }
-                resolve(res);
             };
 
             req(options, cb);
