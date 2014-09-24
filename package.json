@@ -1,0 +1,11 @@
+{
+  "name": "preq",
+  "version": "0.0.0",
+  "description": "Yet another promising request wrapper",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha"
+  },
+  "author": "Gabriel Wicke <gwicke@wikimedia.org>",
+  "license": "MIT"
+}
