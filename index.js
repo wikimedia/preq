@@ -57,7 +57,7 @@ function wrap(method) {
                 }
                 if (res.body && res.headers
                         && /^application\/json/.test(res.headers['content-type'])) {
-                    res.body = JSON.decode(res.body);
+                    res.body = JSON.parse(res.body);
                 }
 
                 var ourRes = {
