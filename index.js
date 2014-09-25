@@ -67,7 +67,8 @@ function wrap(method) {
                 };
 
                 if (ourRes.status >= 400) {
-                    var e = new Error('Response error ' + ourRes.status + ', see .response');
+                    var e = new Error('Response error:\n'
+                            + JSON.stringify(ourRes, null, 2));
                     e.response = ourRes;
                     reject(e);
                 } else {
