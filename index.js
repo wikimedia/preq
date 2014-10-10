@@ -12,7 +12,7 @@ if (!Array.prototype.last) {
 
 var req = require('request');
 
-function getOptions(uri, o) {
+function getOptions(uri, o, method) {
     if (!o || o.constructor !== Object) {
         if (uri) {
             if (typeof uri === 'object') {
@@ -26,7 +26,8 @@ function getOptions(uri, o) {
     } else {
         o.uri = uri;
     }
-    if (o.body && o.body.constructor === Object) {
+    o.method = method;
+    if (o.body && o.body instanceof Object) {
         if (o.headers && /^application\/json/.test(o.headers['content-type'])) {
             o.body = JSON.stringify(o.body);
         } else if (o.method === 'post') {
@@ -52,10 +53,7 @@ util.inherits(HTTPErrorResponse, Error);
 
 function wrap(method) {
     return function (url, options) {
-        options = getOptions(url, options);
-        if (method) {
-            options.method = method;
-        }
+        options = getOptions(url, options, method);
         return new Promise(function(resolve, reject) {
             var cb = function(err, res) {
                 if (err || !res) {
