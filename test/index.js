@@ -1,6 +1,9 @@
 var preq = require('../index');
 var assert = require('assert');
 
+// mocha defines to avoid JSHint breakage
+/* global describe, it, before, beforeEach, after, afterEach */
+
 describe('preq', function() {
     it('should retry', function() {
         this.timeout(20000);
@@ -14,8 +17,32 @@ describe('preq', function() {
             assert.equal(e.status, 500);
             var tDelta = new Date() - tStart;
             if (tDelta < 3150) {
-                throw new Error("Does not look as if this actually retried!")
+                throw new Error("Does not look as if this actually retried!");
             }
+        });
+    });
+    it('get google.com', function() {
+        return preq.get({
+            // Some unreachable port
+            uri: 'http://google.com/',
+            retries: 2
+        })
+        .then(function(res) {
+            assert.equal(res.status, 200);
+            assert.equal(!!res.body, true);
+        });
+    });
+    it('get google.com with query', function() {
+        return preq.get({
+            // Some unreachable port
+            uri: 'http://google.com/',
+            query: {
+                q: 'foo'
+            }
+        })
+        .then(function(res) {
+            assert.equal(res.status, 200);
+            assert.equal(!!res.body, true);
         });
     });
 });
