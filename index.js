@@ -55,8 +55,17 @@ function wrap(method) {
     return function (url, options) {
         options = getOptions(url, options, method);
         return new Promise(function(resolve, reject) {
+            var retries = options.retries;
+            var delay = 50;
             var cb = function(err, res) {
                 if (err || !res) {
+                    if (retries) {
+                        //console.log('retrying', options, retries, delay);
+                        setTimeout(req.bind(req, options, cb), delay);
+                        retries--;
+                        delay *= 2;
+                        return;
+                    }
                     if (!err) {
                         err = new HTTPErrorResponse({
                             status: 500,
@@ -68,7 +77,9 @@ function wrap(method) {
                         err =  new HTTPErrorResponse({
                             status: 500,
                             body: {
-                                type: 'internal_error'
+                                type: 'internal_error',
+                                description: err.toString(),
+                                error: err
                             },
                             stack: err.stack
                         });

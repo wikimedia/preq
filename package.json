@@ -12,6 +12,9 @@
     "bluebird": "^2.3.2",
     "request": "^2.44.0"
   },
+  "devDependencies": {
+      "mocha": "x.x.x"
+  },
   "repository": {
     "type": "git",
     "url": "git://github.com/gwicke/preq.git"
