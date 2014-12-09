@@ -10,7 +10,11 @@ if (!Array.prototype.last) {
     };
 }
 
+
 var req = require('request');
+
+// Increase the number of sockets per server
+require('http').globalAgent.maxSocket = 50;
 
 function getOptions(uri, o, method) {
     if (!o || o.constructor !== Object) {
@@ -43,13 +47,13 @@ function getOptions(uri, o, method) {
  *
  * Has the same properties as the original response.
  */
-function HTTPErrorResponse(response) {
+function HTTPError(response) {
     for (var key in response) {
         this[key] = response[key];
     }
-    this.stack = this.toString();
+    this.stack = new Error(JSON.stringify(response)).stack;
 }
-util.inherits(HTTPErrorResponse, Error);
+util.inherits(HTTPError, Error);
 
 function wrap(method) {
     return function (url, options) {
@@ -67,14 +71,14 @@ function wrap(method) {
                         return;
                     }
                     if (!err) {
-                        err = new HTTPErrorResponse({
+                        err = new HTTPError({
                             status: 500,
                             body: {
                                 type: 'empty_response',
                             }
                         });
                     } else {
-                        err =  new HTTPErrorResponse({
+                        err =  new HTTPError({
                             status: 500,
                             body: {
                                 type: 'internal_error',
@@ -98,7 +102,7 @@ function wrap(method) {
                 };
 
                 if (ourRes.status >= 400) {
-                    reject(new HTTPErrorResponse(ourRes));
+                    reject(new HTTPError(ourRes));
                 } else {
                     resolve(ourRes);
                 }
