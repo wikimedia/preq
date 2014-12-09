@@ -48,10 +48,14 @@ function getOptions(uri, o, method) {
  * Has the same properties as the original response.
  */
 function HTTPError(response) {
+    Error.call(this);
+    Error.captureStackTrace(this, arguments.callee);
+    this.name = this.constructor.name;
+    this.message = JSON.stringify(response);
+
     for (var key in response) {
         this[key] = response[key];
     }
-    this.stack = new Error(JSON.stringify(response)).stack;
 }
 util.inherits(HTTPError, Error);
 
