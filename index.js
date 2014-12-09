@@ -1,3 +1,4 @@
+"use strict";
 if (!global.Promise) {
     global.Promise = require('bluebird');
 }
@@ -49,7 +50,7 @@ function getOptions(uri, o, method) {
  */
 function HTTPError(response) {
     Error.call(this);
-    Error.captureStackTrace(this, arguments.callee);
+    Error.captureStackTrace(this, HTTPError);
     this.name = this.constructor.name;
     this.message = JSON.stringify(response);
 
