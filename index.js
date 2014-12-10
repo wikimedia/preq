@@ -15,7 +15,7 @@ if (!Array.prototype.last) {
 var req = require('request');
 
 // Increase the number of sockets per server
-require('http').globalAgent.maxSocket = 50;
+require('http').globalAgent.maxSocket = 100;
 
 function getOptions(uri, o, method) {
     if (!o || o.constructor !== Object) {
@@ -39,6 +39,11 @@ function getOptions(uri, o, method) {
             o.form = o.body;
             o.body = undefined;
         }
+    }
+
+    // Set a timeout by default
+    if (o.timeout === undefined) {
+        o.timeout = 5 * 60 * 1000; // 5 minutes
     }
     return o;
 }
