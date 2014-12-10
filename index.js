@@ -41,6 +41,13 @@ function getOptions(uri, o, method) {
         }
     }
 
+    if ((o.method === 'get' || o.method === 'put')
+            && o.retries === undefined) {
+        // Idempotent methods: Retry by default
+        o.retries = 5;
+    }
+
+
     // Set a timeout by default
     if (o.timeout === undefined) {
         o.timeout = 5 * 60 * 1000; // 5 minutes
