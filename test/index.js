@@ -34,7 +34,26 @@ describe('preq', function() {
     });
     it('get google.com with query', function() {
         return preq.get({
-            // Some unreachable port
+            uri: 'http://google.com/',
+            query: {
+                q: 'foo'
+            }
+        })
+        .then(function(res) {
+            assert.equal(res.status, 200);
+            assert.equal(!!res.body, true);
+        });
+    });
+    it('get google.com, simple constructor style', function() {
+        return preq('http://google.com/')
+        .then(function(res) {
+            assert.equal(res.status, 200);
+            assert.equal(!!res.body, true);
+        });
+    });
+    it('get google.com with query, constructor style', function() {
+        return preq({
+            method: 'get',
             uri: 'http://google.com/',
             query: {
                 q: 'foo'

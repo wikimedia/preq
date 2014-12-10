@@ -130,7 +130,10 @@ function wrap(method) {
     };
 }
 
-var preq = wrap(req);
+var preq = function preq (url, options) {
+    var method = (options || url || {}).method || 'get';
+    return preq[method](url, options);
+};
 
 var methods = ['get','head','put','post','delete','trace','options','mkcol','patch'];
 methods.forEach(function(method) {
