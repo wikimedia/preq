@@ -1,5 +1,10 @@
 "use strict";
-var P = require('bluebird');
+if (!global.Promise || !global.Promise.promisify) {
+    // Use promisify as a proxy for 'has modern promise implementation'
+    // Bluebird is faster than native promises in node 0.10 & 0.11, so
+    // normally use that.
+    global.Promise = require('bluebird');
+}
 var util = require('util');
 
 if (!Array.prototype.last) {
@@ -72,7 +77,7 @@ util.inherits(HTTPError, Error);
 function wrap(method) {
     return function (url, options) {
         options = getOptions(url, options, method);
-        return new P(function(resolve, reject) {
+        return new Promise(function(resolve, reject) {
             var retries = options.retries;
             var delay = 50;
             var cb = function(err, res) {
