@@ -47,7 +47,7 @@ function getOptions(uri, o, method) {
 
     // Set a timeout by default
     if (o.timeout === undefined) {
-        o.timeout = 5 * 60 * 1000; // 5 minutes
+        o.timeout = 1 * 60 * 1000; // 1 minute
     }
     return o;
 }
@@ -104,6 +104,7 @@ function wrap(method) {
                     }
                     return reject(err);
                 }
+
                 if (res.body && res.headers &&
                         /^application\/json/.test(res.headers['content-type'])) {
                     res.body = JSON.parse(res.body);
