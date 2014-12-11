@@ -1,8 +1,5 @@
 "use strict";
-if (!global.Promise) {
-    global.Promise = require('bluebird');
-}
-
+var P = require('bluebird');
 var util = require('util');
 
 if (!Array.prototype.last) {
@@ -75,7 +72,7 @@ util.inherits(HTTPError, Error);
 function wrap(method) {
     return function (url, options) {
         options = getOptions(url, options, method);
-        return new Promise(function(resolve, reject) {
+        return new P(function(resolve, reject) {
             var retries = options.retries;
             var delay = 50;
             var cb = function(err, res) {
