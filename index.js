@@ -15,7 +15,7 @@ if (!Array.prototype.last) {
 var req = require('request');
 
 // Increase the number of sockets per server
-require('http').globalAgent.maxSocket = 100;
+require('http').globalAgent.maxSockets = 100;
 
 function getOptions(uri, o, method) {
     if (!o || o.constructor !== Object) {
