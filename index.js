@@ -5,19 +5,9 @@ if (!global.Promise || !global.Promise.promisify) {
     // normally use that.
     global.Promise = require('bluebird');
 }
+
 var util = require('util');
-
-if (!Array.prototype.last) {
-    Array.prototype.last = function() {
-        return this[this.length - 1];
-    };
-}
-
-
 var req = require('request');
-
-// Increase the number of sockets per server
-require('http').globalAgent.maxSockets = 100;
 
 function getOptions(uri, o, method) {
     if (!o || o.constructor !== Object) {
@@ -53,6 +43,11 @@ function getOptions(uri, o, method) {
     // Set a timeout by default
     if (o.timeout === undefined) {
         o.timeout = 1 * 60 * 1000; // 1 minute
+    }
+
+    // Default pool options: Don't limit the number of sockets
+    if (!o.pool) {
+        o.pool = {maxSockets: Infinity};
     }
     return o;
 }
