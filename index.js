@@ -6,6 +6,14 @@ if (!global.Promise || !global.Promise.promisify) {
     global.Promise = require('bluebird');
 }
 
+// many concurrent connections to the same host
+var Agent = require('./http_agent.js').Agent,
+	httpAgent = new Agent({
+		connectTimeout: 5 * 1000,
+		maxSockets: Infinity
+	});
+require('http').globalAgent = httpAgent;
+
 var util = require('util');
 var req = require('request');
 
@@ -74,6 +82,7 @@ function wrap(method) {
         options = getOptions(url, options, method);
         return new Promise(function(resolve, reject) {
             var retries = options.retries;
+            var timeout = options.timeout;
             var delay = 50;
             var cb = function(err, res) {
                 if (err || !res) {
@@ -82,6 +91,7 @@ function wrap(method) {
                         setTimeout(req.bind(req, options, cb), delay);
                         retries--;
                         delay *= 2;
+                        options.timeout = timeout + delay;
                         return;
                     }
                     if (!err) {
