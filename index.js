@@ -90,8 +90,10 @@ function wrap(method) {
                         //console.log('retrying', options, retries, delay);
                         setTimeout(req.bind(req, options, cb), delay);
                         retries--;
+                        // exponential backoff, but start with a short delay
                         delay *= 2;
-                        options.timeout = timeout + delay;
+                        // grow the timeout linearly
+                        options.timeout = options.timeout + timeout;
                         return;
                     }
                     if (!err) {
