@@ -1,5 +1,5 @@
 "use strict";
-if (!global.Promise || !global.Promise.promisify) {
+if (!global.Promise || !Promise.promisify || !Promise.bind || !Promise.delay) {
     // Use promisify as a proxy for 'has modern promise implementation'
     // Bluebird is faster than native promises in node 0.10 & 0.11, so
     // normally use that.
@@ -15,7 +15,8 @@ var Agent = require('./http_agent.js').Agent,
 require('http').globalAgent = httpAgent;
 
 var util = require('util');
-var req = require('request');
+
+var request = Promise.promisify(require('request'));
 
 function getOptions(uri, o, method) {
     if (!o || o.constructor !== Object) {
@@ -77,77 +78,88 @@ function HTTPError(response) {
 }
 util.inherits(HTTPError, Error);
 
-function wrap(method) {
-    return function (url, options) {
-        options = getOptions(url, options, method);
-        return new Promise(function(resolve, reject) {
-            var retries = options.retries;
-            var timeout = options.timeout;
-            var delay = 50;
-            var cb = function(err, res) {
-                if (err || !res) {
-                    if (retries) {
-                        //console.log('retrying', options, retries, delay);
-                        setTimeout(req.bind(req, options, cb), delay);
-                        retries--;
-                        // exponential backoff, but start with a short delay
-                        delay *= 2;
-                        // grow the timeout linearly
-                        options.timeout = options.timeout + timeout;
-                        return;
-                    }
-                    if (!err) {
-                        err = new HTTPError({
-                            status: 500,
-                            body: {
-                                type: 'empty_response',
-                            }
-                        });
-                    } else {
-                        err =  new HTTPError({
-                            status: 500,
-                            body: {
-                                type: 'internal_error',
-                                description: err.toString(),
-                                error: err
-                            },
-                            stack: err.stack
-                        });
-                    }
-                    return reject(err);
-                }
 
-                if (res.body && res.headers &&
-                        /^application\/json/.test(res.headers['content-type'])) {
-                    res.body = JSON.parse(res.body);
-                }
+/*
+ * Encapsulate the state associated with a single HTTP request
+ */
+function Request (method, url, options) {
+    this.options = getOptions(url, options, method);
+    this.retries = this.options.retries;
+    this.timeout = this.options.timeout;
+    this.delay = 50; // start with 50ms
+}
 
-                var ourRes = {
-                    status: res.statusCode,
-                    headers: res.headers,
-                    body: res.body
-                };
+Request.prototype.retry = function (err) {
+    if (this.retries) {
+        var res = Promise
+        .bind(this)
+        .delay(this.delay)
+        .then(this.run);
+        this.retries--;
+        // exponential backoff, but start with a short delay
+        this.delay *= 2;
+        // grow the timeout linearly
+        this.timeout += this.options.timeout;
+        return res;
+    } else {
+        throw err;
+    }
+};
 
-                if (ourRes.status >= 400) {
-                    reject(new HTTPError(ourRes));
-                } else {
-                    resolve(ourRes);
+Request.prototype.run = function () {
+    return request(this.options)
+    .bind(this)
+    .then(function(responses) {
+        if (!responses || responses.length < 2) {
+            return this.retry(new HTTPError({
+                status: 500,
+                body: {
+                    type: 'empty_response',
                 }
+            }));
+        } else {
+            var response = responses[0];
+            if (response.body && response.headers &&
+                    /^application\/json/.test(response.headers['content-type'])) {
+                response.body = JSON.parse(response.body);
+            }
+
+            var res = {
+                status: response.statusCode,
+                headers: response.headers,
+                body: response.body
             };
 
-            req(options, cb);
-        });
-    };
-}
+            if (res.status >= 400) {
+                throw new HTTPError(res);
+            } else {
+                return res;
+            }
+        }
+    },
+    function (err) {
+        return this.retry(new HTTPError({
+            status: 500,
+            body: {
+                type: 'internal_error',
+                description: err.toString(),
+                error: err
+            },
+            stack: err.stack
+        }));
+    });
+};
 
 var preq = function preq (url, options) {
     var method = (options || url || {}).method || 'get';
-    return preq[method](url, options);
+    return new Request(method, url, options).run();
 };
 
 var methods = ['get','head','put','post','delete','trace','options','mkcol','patch'];
 methods.forEach(function(method) {
-    preq[method] = wrap(method);
+    preq[method] = function (url, options) {
+        return new Request(method, url, options).run();
+    };
 });
 
 module.exports = preq;
