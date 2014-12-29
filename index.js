@@ -12,9 +12,9 @@ var Agent = require('./http_agent.js').Agent,
         connectTimeout: 5 * 1000,
         // Setting this too high (especially 'Infinity') leads to high
         // (hundreds of mb) memory usage in the agent under sustained request
-        // workloads. 500 should be a reasonable upper bound for practical
+        // workloads. 250 should be a reasonable upper bound for practical
         // applications.
-        maxSockets: 500
+        maxSockets: 250
     });
 require('http').globalAgent = httpAgent;
 
