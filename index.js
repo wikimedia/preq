@@ -8,10 +8,14 @@ if (!global.Promise || !Promise.promisify || !Promise.bind || !Promise.delay) {
 
 // many concurrent connections to the same host
 var Agent = require('./http_agent.js').Agent,
-	httpAgent = new Agent({
-		connectTimeout: 5 * 1000,
-		maxSockets: 500
-	});
+    httpAgent = new Agent({
+        connectTimeout: 5 * 1000,
+        // Setting this too high (especially 'Infinity') leads to high
+        // (hundreds of mb) memory usage in the agent under sustained request
+        // workloads. 500 should be a reasonable upper bound for practical
+        // applications.
+        maxSockets: 500
+    });
 require('http').globalAgent = httpAgent;
 
 var util = require('util');
