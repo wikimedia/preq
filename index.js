@@ -10,7 +10,7 @@ if (!global.Promise || !Promise.promisify || !Promise.bind || !Promise.delay) {
 var Agent = require('./http_agent.js').Agent,
 	httpAgent = new Agent({
 		connectTimeout: 5 * 1000,
-		maxSockets: Infinity
+		maxSockets: 1000
 	});
 require('http').globalAgent = httpAgent;
 
