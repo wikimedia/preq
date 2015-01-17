@@ -74,7 +74,10 @@ function HTTPError(response) {
     Error.call(this);
     Error.captureStackTrace(this, HTTPError);
     this.name = this.constructor.name;
-    this.message = JSON.stringify(response);
+    this.message = response.status.toString();
+    if (response.body && response.body.type) {
+        this.message += ': ' + response.body.type;
+    }
 
     for (var key in response) {
         this[key] = response[key];
@@ -124,7 +127,7 @@ Request.prototype.run = function () {
         } else {
             var response = responses[0];
             if (response.body && response.headers &&
-                    /^application\/json/.test(response.headers['content-type'])) {
+                    /^application\/(?:problem\+)?json/.test(response.headers['content-type'])) {
                 response.body = JSON.parse(response.body);
             }
 
