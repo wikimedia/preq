@@ -62,6 +62,10 @@ function getOptions(uri, o, method) {
     if (!o.pool) {
         o.pool = {maxSockets: Infinity};
     }
+
+    if (o.gzip === undefined) {
+        o.gzip = true;
+    }
     return o;
 }
 
@@ -126,15 +130,16 @@ Request.prototype.run = function () {
             }));
         } else {
             var response = responses[0];
-            if (response.body && response.headers &&
+            var body = responses[1]; // decompressed
+            if (body && response.headers &&
                     /^application\/(?:problem\+)?json/.test(response.headers['content-type'])) {
-                response.body = JSON.parse(response.body);
+                body = JSON.parse(body);
             }
 
             var res = {
                 status: response.statusCode,
                 headers: response.headers,
-                body: response.body
+                body: body
             };
 
             if (res.status >= 400) {
@@ -150,7 +155,8 @@ Request.prototype.run = function () {
             body: {
                 type: 'internal_error',
                 description: err.toString(),
-                error: err
+                error: err,
+                stack: err.stack
             },
             stack: err.stack
         }));
