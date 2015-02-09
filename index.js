@@ -63,7 +63,7 @@ function getOptions(uri, o, method) {
         o.pool = {maxSockets: Infinity};
     }
 
-    if (o.gzip === undefined) {
+    if (o.gzip === undefined && o.method === 'get') {
         o.gzip = true;
     }
     return o;
@@ -132,7 +132,7 @@ Request.prototype.run = function () {
             var response = responses[0];
             var body = responses[1]; // decompressed
             if (body && response.headers &&
-                    /^application\/(?:problem\+)?json/.test(response.headers['content-type'])) {
+                    /^application\/(?:problem\+)?json\b/.test(response.headers['content-type'])) {
                 body = JSON.parse(body);
             }
 
