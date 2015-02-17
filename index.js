@@ -1,10 +1,6 @@
 "use strict";
-if (!global.Promise || !Promise.promisify || !Promise.bind || !Promise.delay) {
-    // Use promisify as a proxy for 'has modern promise implementation'
-    // Bluebird is faster than native promises in node 0.10 & 0.11, so
-    // normally use that.
-    global.Promise = require('bluebird');
-}
+
+var P = require('bluebird');
 
 // many concurrent connections to the same host
 var Agent = require('./http_agent.js').Agent,
@@ -20,7 +16,7 @@ require('http').globalAgent = httpAgent;
 
 var util = require('util');
 
-var request = Promise.promisify(require('request'));
+var request = P.promisify(require('request'));
 
 function getOptions(uri, o, method) {
     if (!o || o.constructor !== Object) {
@@ -102,7 +98,7 @@ function Request (method, url, options) {
 
 Request.prototype.retry = function (err) {
     if (this.retries) {
-        var res = Promise
+        var res = P
         .bind(this)
         .delay(this.delay)
         .then(this.run);
