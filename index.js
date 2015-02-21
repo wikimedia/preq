@@ -48,6 +48,10 @@ function getOptions(uri, o, method) {
         o.retries = 5;
     }
 
+    if (o.query) {
+        o.qs = o.query;
+        o.query = undefined;
+    }
 
     // Set a timeout by default
     if (o.timeout === undefined) {

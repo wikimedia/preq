@@ -10,7 +10,7 @@ describe('preq', function() {
         var tStart = new Date();
         return preq.get({
             // Some unreachable port
-            uri: 'http://localhost:666666/',
+            uri: 'http://localhost:1/',
             retries: 6
         })
         .catch(function(e) {
