@@ -118,7 +118,7 @@ Request.prototype.retry = function (err) {
 };
 
 Request.prototype.run = function () {
-    return request(this.options)
+    return P.try(request, this.options)
     .bind(this)
     .then(function(responses) {
         if (!responses || responses.length < 2) {
