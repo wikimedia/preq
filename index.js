@@ -118,6 +118,7 @@ Request.prototype.retry = function (err) {
 };
 
 Request.prototype.run = function () {
+    var self = this;
     return P.try(request, this.options)
     .bind(this)
     .then(function(responses) {
@@ -153,10 +154,11 @@ Request.prototype.run = function () {
         return this.retry(new HTTPError({
             status: 500,
             body: {
-                type: 'internal_error',
+                type: 'internal_http_error',
                 description: err.toString(),
                 error: err,
-                stack: err.stack
+                stack: err.stack,
+                options: self.options
             },
             stack: err.stack
         }));
