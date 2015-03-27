@@ -158,7 +158,8 @@ Request.prototype.run = function () {
                 description: err.toString(),
                 error: err,
                 stack: err.stack,
-                options: self.options
+                uri: self.options.uri,
+                method: self.options.method,
             },
             stack: err.stack
         }));
