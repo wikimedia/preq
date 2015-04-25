@@ -11,10 +11,10 @@ describe('preq', function() {
         return preq.get({
             // Some unreachable port
             uri: 'http://localhost:1/',
-            retries: 6
+            retries: 4
         })
         .catch(function(e) {
-            assert.equal(e.status, 500);
+            assert.equal(e.status, 504);
             var tDelta = new Date() - tStart;
             if (tDelta < 3150) {
                 throw new Error("Does not look as if this actually retried!");

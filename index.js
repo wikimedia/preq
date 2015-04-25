@@ -44,8 +44,8 @@ function getOptions(uri, o, method) {
 
     if ((o.method === 'get' || o.method === 'put')
             && o.retries === undefined) {
-        // Idempotent methods: Retry by default
-        o.retries = 5;
+        // Idempotent methods: Retry once by default
+        o.retries = 1;
     }
 
     if (o.query) {
@@ -55,7 +55,7 @@ function getOptions(uri, o, method) {
 
     // Set a timeout by default
     if (o.timeout === undefined) {
-        o.timeout = 1 * 60 * 1000; // 1 minute
+        o.timeout = 2 * 60 * 1000; // 2 minutes
     }
 
     // Default pool options: Don't limit the number of sockets
@@ -97,21 +97,20 @@ function Request (method, url, options) {
     this.options = getOptions(url, options, method);
     this.retries = this.options.retries;
     this.timeout = this.options.timeout;
-    this.delay = 50; // start with 50ms
+    this.delay = 100; // start with 100ms
 }
 
 Request.prototype.retry = function (err) {
     if (this.retries) {
-        var res = P
-        .bind(this)
+        this.retries--;
+        // exponential backoff with some fuzz, but start with a short delay
+        this.delay = this.delay * 2 + this.delay * Math.random();
+        // grow the timeout linearly, plus some fuzz
+        this.timeout += this.options.timeout + Math.random() * this.options.timeout;
+
+        return P.bind(this)
         .delay(this.delay)
         .then(this.run);
-        this.retries--;
-        // exponential backoff, but start with a short delay
-        this.delay *= 2;
-        // grow the timeout linearly
-        this.timeout += this.options.timeout;
-        return res;
     } else {
         throw err;
     }
@@ -124,7 +123,7 @@ Request.prototype.run = function () {
     .then(function(responses) {
         if (!responses || responses.length < 2) {
             return this.retry(new HTTPError({
-                status: 500,
+                status: 502,
                 body: {
                     type: 'empty_response',
                 }
@@ -144,6 +143,13 @@ Request.prototype.run = function () {
             };
 
             if (res.status >= 400) {
+                if (res.status === 503
+                        && /^[0-9]+$/.test(response.headers['retry-after'])
+                        && parseInt(response.headers['retry-after']) * 1000 < self.options.timeout) {
+                    self.delay = parseInt(response.headers['retry-after']) * 1000;
+                    return self.retry(new HTTPError(res));
+                }
+
                 throw new HTTPError(res);
             } else {
                 return res;
@@ -152,7 +158,7 @@ Request.prototype.run = function () {
     },
     function (err) {
         return this.retry(new HTTPError({
-            status: 500,
+            status: 504,
             body: {
                 type: 'internal_http_error',
                 description: err.toString(),
