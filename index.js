@@ -66,6 +66,12 @@ function getOptions(uri, o, method) {
     if (o.gzip === undefined && o.method === 'get') {
         o.gzip = true;
     }
+
+    // Default to binary requests (return buffer)
+    if (!o.encoding) {
+        o.encoding = null;
+    }
+
     return o;
 }
 
@@ -131,9 +137,17 @@ Request.prototype.run = function () {
         } else {
             var response = responses[0];
             var body = responses[1]; // decompressed
-            if (body && response.headers &&
-                    /^application\/(?:problem\+)?json\b/.test(response.headers['content-type'])) {
-                body = JSON.parse(body);
+
+            if (body && response.headers) {
+                var contentType = response.headers['content-type'];
+                if (/^text\/|application\/json\b/.test(contentType)) {
+                    // Convert buffer to string
+                    body = body.toString();
+                }
+
+                if (/^application\/(?:problem\+)?json\b/.test(contentType)) {
+                    body = JSON.parse(body);
+                }
             }
 
             var res = {
