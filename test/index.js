@@ -23,7 +23,6 @@ describe('preq', function() {
     });
     it('get google.com', function() {
         return preq.get({
-            // Some unreachable port
             uri: 'http://google.com/',
             retries: 2
         })
@@ -62,6 +61,20 @@ describe('preq', function() {
         .then(function(res) {
             assert.equal(res.status, 200);
             assert.equal(!!res.body, true);
+        });
+    });
+    it('return buffer on user-supplied encoding', function() {
+        return preq('http://google.com/', {encoding: null})
+        .then(function(res) {
+            assert.equal(res.status, 200);
+            assert.equal(res.body.constructor.name, 'Buffer');
+        });
+    });
+    it('return string with no encoding', function() {
+        return preq('http://google.com/')
+        .then(function(res) {
+            assert.equal(res.status, 200);
+            assert.equal(typeof res.body, 'string');
         });
     });
 });
