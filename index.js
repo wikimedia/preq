@@ -71,7 +71,7 @@ function getOptions(uri, o, method) {
     if (o.encoding === undefined) {
         o.encoding = null;
     } else {
-        o.encodingProvided = true;
+        o._encodingProvided = true;
     }
 
     return o;
@@ -140,7 +140,7 @@ Request.prototype.run = function () {
             var response = responses[0];
             var body = responses[1]; // decompressed
 
-            if (body && response.headers && !self.options.encodingProvided) {
+            if (body && response.headers && !self.options._encodingProvided) {
                 var contentType = response.headers['content-type'];
                 if (/^text\/|application\/json\b/.test(contentType)) {
                     // Convert buffer to string
