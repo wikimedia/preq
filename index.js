@@ -68,8 +68,10 @@ function getOptions(uri, o, method) {
     }
 
     // Default to binary requests (return buffer)
-    if (!o.encoding) {
+    if (o.encoding === undefined) {
         o.encoding = null;
+    } else {
+        o._encodingProvided = true;
     }
 
     return o;
@@ -138,7 +140,7 @@ Request.prototype.run = function () {
             var response = responses[0];
             var body = responses[1]; // decompressed
 
-            if (body && response.headers) {
+            if (body && response.headers && !self.options._encodingProvided) {
                 var contentType = response.headers['content-type'];
                 if (/^text\/|application\/json\b/.test(contentType)) {
                     // Convert buffer to string
