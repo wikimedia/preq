@@ -39,7 +39,10 @@ describe('preq', function() {
         .then(function(res) {
             assert.equal(res.status, 200);
             assert.equal(!!res.body, true);
-            assert.equal(!!res.headers['content-location'], true);
+            assert.equal(typeof res.headers['content-location'], 'string');
+            if (!/^http:\/\/www\.google/.test(res.headers['content-location'])) {
+                throw new Error('Looks like a broken content-location');
+            }
         });
     });
     it('get google.com with query', function() {
