@@ -31,6 +31,17 @@ describe('preq', function() {
             assert.equal(!!res.body, true);
         });
     });
+    it('get google.com, check for redirect', function() {
+        return preq.get({
+            uri: 'http://google.com',
+            retries: 2
+        })
+        .then(function(res) {
+            assert.equal(res.status, 200);
+            assert.equal(!!res.body, true);
+            assert.equal(!!res.headers['content-location'], true);
+        });
+    });
     it('get google.com with query', function() {
         return preq.get({
             uri: 'http://google.com/',

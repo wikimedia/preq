@@ -158,6 +158,13 @@ Request.prototype.run = function () {
                 body: body
             };
 
+            // Check if we were redirected
+            if (self.options.uri !== response.request.uri && !res.headers['content-location']) {
+                // Indicate the redirect via an injected Content-Location
+                // header
+                res.headers['content-location'] = response.request.uri;
+            }
+
             if (res.status >= 400) {
                 if (res.status === 503
                         && /^[0-9]+$/.test(response.headers['retry-after'])
