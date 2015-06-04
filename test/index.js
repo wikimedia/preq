@@ -21,25 +21,27 @@ describe('preq', function() {
             }
         });
     });
-    it('get google.com', function() {
+    it('get enwiki front page', function() {
         return preq.get({
-            uri: 'http://google.com/',
-            retries: 2
+            uri: 'https://en.wikipedia.org/wiki/Main_Page',
         })
         .then(function(res) {
             assert.equal(res.status, 200);
             assert.equal(!!res.body, true);
+            // Make sure content-location is not set
+            assert.equal(!!res.headers['content-location'], false);
         });
     });
     it('get google.com, check for redirect', function() {
         return preq.get({
-            uri: 'http://google.com',
+            uri: 'https://en.wikipedia.org/',
             retries: 2
         })
         .then(function(res) {
             assert.equal(res.status, 200);
             assert.equal(!!res.body, true);
-            assert.equal(!!res.headers['content-location'], true);
+            assert.equal(res.headers['content-location'],
+                    'https://en.wikipedia.org/wiki/Main_Page');
         });
     });
     it('get google.com with query', function() {
