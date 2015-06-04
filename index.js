@@ -13,6 +13,7 @@ var Agent = require('./http_agent.js').Agent,
         maxSockets: 250
     });
 require('http').globalAgent = httpAgent;
+var url = require('url');
 
 var util = require('util');
 
@@ -159,10 +160,17 @@ Request.prototype.run = function () {
             };
 
             // Check if we were redirected
-            if (self.options.uri !== response.request.uri && !res.headers['content-location']) {
-                // Indicate the redirect via an injected Content-Location
-                // header
-                res.headers['content-location'] = response.request.uri;
+            if (self.options.uri !== response.request.uri) {
+                if (!res.headers['content-location']) {
+                    // Indicate the redirect via an injected Content-Location
+                    // header
+                    res.headers['content-location'] = response.request.uri;
+                } else {
+                    // Make sure that we resolve the returned content-location
+                    // relative to the last request URI
+                    res.headers['content-location'] = url.parse(response.request.uri)
+                            .resolve(res.headers['content-location']).toString();
+                }
             }
 
             if (res.status >= 400) {
