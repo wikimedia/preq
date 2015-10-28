@@ -149,10 +149,7 @@ Request.prototype.run = function () {
                 }
 
                 if (/^application\/(?:problem\+)?json\b/.test(contentType)) {
-                    body = JSON.parse(body, function(key, value) {
-                        return ((value instanceof Object) && (value.type == 'Buffer'))
-                            ? new Buffer(value.data) : value;
-                    });
+                    body = JSON.parse(body);
                 }
             }
 
