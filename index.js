@@ -64,7 +64,7 @@ function getOptions(uri, o, method) {
         o.pool = {maxSockets: Infinity};
     }
 
-    if (o.gzip === undefined && o.method === 'get') {
+    if ((o.headers && /\bgzip\b/.test(o.headers['accept-encoding'])) || (o.gzip === undefined && o.method === 'get')) {
         o.gzip = true;
     }
 
@@ -141,11 +141,17 @@ Request.prototype.run = function () {
             var response = responses[0];
             var body = responses[1]; // decompressed
 
+            if (self.options.gzip && response.headers) {
+                delete response.headers['content-encoding'];
+                delete response.headers['content-length'];
+            }
+
             if (body && response.headers && !self.options._encodingProvided) {
                 var contentType = response.headers['content-type'];
                 if (/^text\/|application\/json\b/.test(contentType)) {
                     // Convert buffer to string
                     body = body.toString();
+                    delete response.headers['content-length'];
                 }
 
                 if (/^application\/(?:problem\+)?json\b/.test(contentType)) {
