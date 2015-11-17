@@ -90,5 +90,14 @@ describe('preq', function() {
             assert.equal(typeof res.body, 'string');
         });
     });
+    it('no content-encoding header for gzipped responses', function() {
+        return preq({
+            uri: 'https://en.wikipedia.org/api/rest_v1/page/html/Foobar',
+            gzip: true
+        }).then(function(res) {
+            assert.equal(res.status, 200);
+            assert.equal(res.headers['content-encoding'], undefined);
+        });
+    });
 });
 
