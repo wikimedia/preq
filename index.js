@@ -17,7 +17,7 @@ var url = require('url');
 
 var util = require('util');
 
-var request = P.promisify(require('request'));
+var request = P.promisify(require('request'), { multiArgs: true });
 
 function getOptions(uri, o, method) {
     if (!o || o.constructor !== Object) {
@@ -91,7 +91,6 @@ function HTTPError(response) {
     if (response.body && response.body.type) {
         this.message += ': ' + response.body.type;
     }
-
     for (var key in response) {
         this[key] = response[key];
     }
@@ -127,7 +126,7 @@ Request.prototype.retry = function (err) {
 
 Request.prototype.run = function () {
     var self = this;
-    return P.try(request, this.options)
+    return P.try(function() { return request(self.options) })
     .bind(this)
     .then(function(responses) {
         if (!responses || responses.length < 2) {
