@@ -1,4 +1,4 @@
-# preq [![Build Status](https://travis-ci.org/gwicke/preq.svg?branch=master)](https://travis-ci.org/gwicke/preq)
+# preq [![Build Status](https://travis-ci.org/wikimedia/preq.svg?branch=master)](https://travis-ci.org/wikimedia/preq)
 
 Yet another promising [request](https://github.com/request/request) wrapper.
 
