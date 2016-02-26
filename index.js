@@ -1,10 +1,41 @@
 "use strict";
 
 var P = require('bluebird');
+var url = require('url');
+var util = require('util');
 
-// many concurrent connections to the same host
-var Agent = require('./http_agent.js').Agent,
-    httpAgent = new Agent({
+function setupConnectionTimeout(protocol) {
+    var http = require(protocol);
+    var Agent = http.Agent;
+
+    // Many concurrent connections to the same host
+    function ConnectTimeoutAgent() {
+        Agent.apply(this, arguments);
+    }
+    util.inherits(ConnectTimeoutAgent, Agent);
+
+    ConnectTimeoutAgent.prototype.createSocket = function() {
+        var s = Agent.prototype.createSocket.apply(this, arguments);
+        // Set up a connect timeout if connectTimeout option is set
+        if (this.options.connectTimeout && !s.connectTimeoutTimer) {
+            s.connectTimeoutTimer = setTimeout(function() {
+                var e = new Error('ETIMEDOUT');
+                e.code = 'ETIMEDOUT';
+                s.end();
+                s.emit('error', e);
+                s.destroy();
+            }, this.options.connectTimeout);
+            s.once('connect',  function() {
+                if (this.connectTimeoutTimer) {
+                    clearTimeout(this.connectTimeoutTimer);
+                    this.connectTimeoutTimer = undefined;
+                }
+            });
+        }
+        return s;
+    };
+
+    http.globalAgent = new ConnectTimeoutAgent({
         connectTimeout: 5 * 1000,
         // Setting this too high (especially 'Infinity') leads to high
         // (hundreds of mb) memory usage in the agent under sustained request
@@ -12,10 +43,9 @@ var Agent = require('./http_agent.js').Agent,
         // applications.
         maxSockets: 250
     });
-require('http').globalAgent = httpAgent;
-var url = require('url');
-
-var util = require('util');
+}
+setupConnectionTimeout('http');
+setupConnectionTimeout('https');
 
 var request = P.promisify(require('request'), { multiArgs: true });
 
