@@ -117,11 +117,6 @@ function getOptions(uri, o, method) {
         o.timeout = 2 * 60 * 1000; // 2 minutes
     }
 
-    // Default pool options: Don't limit the number of sockets
-    if (!o.pool) {
-        o.pool = {maxSockets: Infinity};
-    }
-
     if ((o.headers && /\bgzip\b/.test(o.headers['accept-encoding'])) || (o.gzip === undefined && o.method === 'get')) {
         o.gzip = true;
     }
