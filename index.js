@@ -3,6 +3,7 @@
 var P = require('bluebird');
 var url = require('url');
 var util = require('util');
+var semver = require('semver');
 
 function setupConnectionTimeout(protocol) {
     var http = require(protocol);
@@ -15,24 +16,51 @@ function setupConnectionTimeout(protocol) {
     util.inherits(ConnectTimeoutAgent, Agent);
 
     ConnectTimeoutAgent.prototype.createSocket = function() {
-        var s = Agent.prototype.createSocket.apply(this, arguments);
-        // Set up a connect timeout if connectTimeout option is set
-        if (this.options.connectTimeout && !s.connectTimeoutTimer) {
-            s.connectTimeoutTimer = setTimeout(function() {
-                var e = new Error('ETIMEDOUT');
-                e.code = 'ETIMEDOUT';
-                s.end();
-                s.emit('error', e);
-                s.destroy();
-            }, this.options.connectTimeout);
-            s.once('connect',  function() {
-                if (this.connectTimeoutTimer) {
-                    clearTimeout(this.connectTimeoutTimer);
-                    this.connectTimeoutTimer = undefined;
+        var args = Array.prototype.slice.call(arguments);
+        var options = this.options;
+        var cb = null;
+        function setup(err, s) {
+            if (err) {
+                if (typeof cb === 'function') {
+                    cb(err, s);
                 }
-            });
+                return;
+            }
+            // Set up a connect timeout if connectTimeout option is set
+            if (options.connectTimeout && !s.connectTimeoutTimer) {
+                s.connectTimeoutTimer = setTimeout(function() {
+                    var e = new Error('ETIMEDOUT');
+                    e.code = 'ETIMEDOUT';
+                    s.end();
+                    s.emit('error', e);
+                    s.destroy();
+                }, options.connectTimeout);
+                s.once('connect',  function() {
+                    if (s.connectTimeoutTimer) {
+                        clearTimeout(s.connectTimeoutTimer);
+                        s.connectTimeoutTimer = undefined;
+                    }
+                });
+            }
+            if (typeof cb === 'function') {
+                cb(null, s);
+            }
         }
-        return s;
+        // Unfortunately, `createSocket` is not a public method of Agent
+        // and, in v5.7 of node, it switched to being an asynchronous method.
+        // `setup` is passed in to remain compatible going forward, while
+        // we continue to return the socket if the synchronous method is
+        // feature detected.
+        var sufficientNodeVersion = semver.gte(process.version, '5.7.0');
+        if (sufficientNodeVersion) {
+            cb = args[2];
+            args[2] = setup;
+        }
+        var sock = Agent.prototype.createSocket.apply(this, args);
+        if (!sufficientNodeVersion) {
+            setup(null, sock);
+            return sock;
+        }
     };
 
     http.globalAgent = new ConnectTimeoutAgent({
