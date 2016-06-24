@@ -3,6 +3,7 @@
 var P = require('bluebird');
 var url = require('url');
 var util = require('util');
+var querystring = require('querystring');
 
 function setupConnectionTimeout(protocol) {
     var http = require(protocol);
@@ -195,7 +196,12 @@ Request.prototype.run = function () {
             };
 
             // Check if we were redirected
-            if (self.options.uri !== response.request.uri.href) {
+            var origURI = self.options.uri;
+            if (self.options.qs && Object.keys(self.options.qs).length) {
+                origURI += '?' + querystring.stringify(self.options.qs);
+            }
+            
+            if (origURI !== response.request.uri.href) {
                 if (!res.headers['content-location']) {
                     // Indicate the redirect via an injected Content-Location
                     // header

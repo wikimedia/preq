@@ -1,6 +1,6 @@
 {
   "name": "preq",
-  "version": "0.4.9",
+  "version": "0.4.10",
   "description": "Yet another promising request wrapper",
   "main": "index.js",
   "scripts": {
