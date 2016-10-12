@@ -178,7 +178,8 @@ Request.prototype.run = function () {
 
             if (body && response.headers && !self.options._encodingProvided) {
                 var contentType = response.headers['content-type'];
-                if (/^text\/|application\/json\b/.test(contentType)) {
+                // Decodes:  "text/...", "application/json...", "application/vnd.geo+json..."
+                if (/^text\/|application\/([^+;]+\+)?json\b/.test(contentType)) {
                     // Convert buffer to string
                     body = body.toString();
                     delete response.headers['content-length'];
