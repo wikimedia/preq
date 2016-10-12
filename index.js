@@ -185,7 +185,7 @@ Request.prototype.run = function () {
                     delete response.headers['content-length'];
                 }
 
-                if (/^application\/(?:problem\+)?json\b/.test(contentType)) {
+                if (/^application\/([^+;]+\+)?json\b/.test(contentType)) {
                     body = JSON.parse(body);
                 }
             }
