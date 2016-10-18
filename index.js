@@ -190,6 +190,12 @@ Request.prototype.run = function () {
                 }
             }
 
+            // 204, 205 and 304 responses must not contain any body
+            if (response.statusCode === 204 || response.statusCode === 205
+                    || response.statusCode === 304) {
+                body = undefined;
+            }
+
             var res = {
                 status: response.statusCode,
                 headers: response.headers,
