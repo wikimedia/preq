@@ -4,8 +4,9 @@ var P = require('bluebird');
 var url = require('url');
 var util = require('util');
 var querystring = require('querystring');
+var semver = require('semver');
 
-function setupConnectionTimeout(protocol) {
+function createConnectTimeoutAgent(protocol) {
     var http = require(protocol);
     var Agent = http.Agent;
 
@@ -15,38 +16,55 @@ function setupConnectionTimeout(protocol) {
     }
     util.inherits(ConnectTimeoutAgent, Agent);
 
-    ConnectTimeoutAgent.prototype.createSocket = function() {
-        var s = Agent.prototype.createSocket.apply(this, arguments);
-        // Set up a connect timeout if connectTimeout option is set
-        if (this.options.connectTimeout && !s.connectTimeoutTimer) {
-            s.connectTimeoutTimer = setTimeout(function() {
+    if (semver.gte(process.version, '5.7.0')) {
+        ConnectTimeoutAgent.prototype.createSocket = function(req, options, cb) {
+            var connectTimeoutTimer = setTimeout(function() {
                 var e = new Error('ETIMEDOUT');
                 e.code = 'ETIMEDOUT';
-                s.end();
-                s.emit('error', e);
-                s.destroy();
+                cb(e);
             }, this.options.connectTimeout);
-            s.once('connect',  function() {
-                if (this.connectTimeoutTimer) {
-                    clearTimeout(this.connectTimeoutTimer);
-                    this.connectTimeoutTimer = undefined;
-                }
-            });
-        }
-        return s;
-    };
-
-    http.globalAgent = new ConnectTimeoutAgent({
-        connectTimeout: 5 * 1000,
-        // Setting this too high (especially 'Infinity') leads to high
-        // (hundreds of mb) memory usage in the agent under sustained request
-        // workloads. 250 should be a reasonable upper bound for practical
-        // applications.
-        maxSockets: 250
-    });
+            Agent.prototype.createSocket.apply(this, [req, options, function(error, newSocket) {
+                newSocket.on('connect', function() {
+                    clearTimeout(connectTimeoutTimer);
+                });
+                cb(error, newSocket);
+            }]);
+        };
+    } else {
+        ConnectTimeoutAgent.prototype.createSocket = function() {
+            var s = Agent.prototype.createSocket.apply(this, arguments);
+            // Set up a connect timeout if connectTimeout option is set
+            if (this.options.connectTimeout && !s.connectTimeoutTimer) {
+                s.connectTimeoutTimer = setTimeout(function () {
+                    var e = new Error('ETIMEDOUT');
+                    e.code = 'ETIMEDOUT';
+                    s.end();
+                    s.emit('error', e);
+                    s.destroy();
+                }, this.options.connectTimeout);
+                s.once('connect', function () {
+                    if (this.connectTimeoutTimer) {
+                        clearTimeout(this.connectTimeoutTimer);
+                        this.connectTimeoutTimer = undefined;
+                    }
+                });
+            }
+            return s;
+        };
+    }
+    return ConnectTimeoutAgent;
 }
-setupConnectionTimeout('http');
-setupConnectionTimeout('https');
+
+var agentOptions = {
+    connectTimeout: 5 * 1000,
+    // Setting this too high (especially 'Infinity') leads to high
+    // (hundreds of mb) memory usage in the agent under sustained request
+    // workloads. 250 should be a reasonable upper bound for practical
+    // applications.
+    maxSockets: 250
+};
+var httpAgentClass = createConnectTimeoutAgent('http');
+var httpsAgentClass = createConnectTimeoutAgent('https');
 
 var request = P.promisify(require('request'), { multiArgs: true });
 
@@ -105,6 +123,9 @@ function getOptions(uri, o, method) {
     } else {
         o._encodingProvided = true;
     }
+
+    o.agentClass = /^https/.test(o.uri) ? httpsAgentClass : httpAgentClass;
+    o.agentOptions = agentOptions;
 
     return o;
 }
