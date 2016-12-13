@@ -68,9 +68,9 @@ Additionally, it defines or modifies these request options:
     - `application/x-www-form-urlencoded`
 - `retries`: Maximum number of retries. Exponential back-off is used between retries.
 - `timeout`: Total request timeout. 
-- `connectTimeout`: Maximum time to establish a TCP connection to the host, in
-    ms. Useful to quickly fail if a node is unreachable at the network level,
-    without waiting for the full `timeout` duration.
+
+The connection timeout, maximum time to establish a TCP connection to the host is 5 seconds by default
+and can be altered with `PREQ_CONNECT_TIMEOUT` environment variable.
 
 
 Also see [the tests](/test/index.js) for usage examples.
