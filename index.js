@@ -56,7 +56,7 @@ function createConnectTimeoutAgent(protocol) {
 }
 
 var agentOptions = {
-    connectTimeout: (process.env.CONNECT_TIMEOUT || 5) * 1000,
+    connectTimeout: (process.env.PREQ_CONNECT_TIMEOUT || 5) * 1000,
     // Setting this too high (especially 'Infinity') leads to high
     // (hundreds of mb) memory usage in the agent under sustained request
     // workloads. 250 should be a reasonable upper bound for practical
