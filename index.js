@@ -82,6 +82,7 @@ function getOptions(uri, o, method) {
     } else {
         o.uri = uri;
     }
+    o.uri = o.uri || o.url;
     o.method = method;
     if (o.body && o.body instanceof Object) {
         if (o.headers && /^application\/json/.test(o.headers['content-type'])) {
