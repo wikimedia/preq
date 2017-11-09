@@ -84,6 +84,13 @@ function getOptions(uri, o, method) {
     }
     o.uri = o.uri || o.url;
     o.method = method;
+    o.headers = o.headers || {};
+    Object.keys(o.headers).forEach(function(header) {
+        if (header.toLowerCase() !== header) {
+            o.headers[header.toLowerCase()] = o.headers[header];
+            delete o.headers[header];
+        }
+    });
     if (o.body && o.body instanceof Object) {
         if (o.headers && /^application\/json/.test(o.headers['content-type'])) {
             o.body = JSON.stringify(o.body);
