@@ -55,7 +55,7 @@ function createConnectTimeoutAgent(protocol) {
     return ConnectTimeoutAgent;
 }
 
-var agentOptions = {
+var defaultAgentOptions = {
     connectTimeout: (process.env.PREQ_CONNECT_TIMEOUT || 5) * 1000,
     // Setting this too high (especially 'Infinity') leads to high
     // (hundreds of mb) memory usage in the agent under sustained request
@@ -114,12 +114,7 @@ function getOptions(uri, o, method) {
     // Set a timeout by default
     if (o.timeout === undefined) {
         o.timeout = 2 * 60 * 1000; // 2 minutes
-    }
-
-    // Default pool options: Don't limit the number of sockets
-    if (!o.pool) {
-        o.pool = {maxSockets: Infinity};
-    }
+    }   
 
     if ((o.headers && /\bgzip\b/.test(o.headers['accept-encoding'])) || (o.gzip === undefined && o.method === 'get')) {
         o.gzip = true;
@@ -133,7 +128,7 @@ function getOptions(uri, o, method) {
     }
 
     o.agentClass = /^https/.test(o.uri) ? httpsAgentClass : httpAgentClass;
-    o.agentOptions = agentOptions;
+    o.agentOptions = Object.assign(defaultAgentOptions, o.agentOptions || {});
 
     return o;
 }
