@@ -128,7 +128,7 @@ function getOptions(uri, o, method) {
     }
 
     o.agentClass = /^https/.test(o.uri) ? httpsAgentClass : httpAgentClass;
-    o.agentOptions = Object.assign(defaultAgentOptions, o.agentOptions || {});
+    o.agentOptions = Object.assign({}, defaultAgentOptions, o.agentOptions);
 
     return o;
 }
