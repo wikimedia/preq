@@ -114,7 +114,7 @@ function getOptions(uri, o, method) {
     // Set a timeout by default
     if (o.timeout === undefined) {
         o.timeout = 2 * 60 * 1000; // 2 minutes
-    }   
+    }
 
     if ((o.headers && /\bgzip\b/.test(o.headers['accept-encoding'])) || (o.gzip === undefined && o.method === 'get')) {
         o.gzip = true;
