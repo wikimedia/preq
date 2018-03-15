@@ -5,8 +5,8 @@ var assert = require('assert');
 /* global describe, it, before, beforeEach, after, afterEach */
 
 describe('preq', function() {
+    this.timeout(30000);
     it('should retry', function() {
-        this.timeout(20000);
         var tStart = new Date();
         return preq.get({
             // Some unreachable port
