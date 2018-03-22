@@ -232,7 +232,8 @@ Request.prototype.run = function () {
                 origURI += '?' + querystring.stringify(self.options.qs);
             }
             
-            if (url.format(origURI) !== response.request.uri.href) {
+            if (origURI !== response.request.uri.href
+                    && url.format(origURI) !== response.request.uri.href) {
                 if (!res.headers['content-location']) {
                     // Indicate the redirect via an injected Content-Location
                     // header
