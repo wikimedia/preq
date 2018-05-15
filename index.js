@@ -7,7 +7,7 @@ var querystring = require('querystring');
 var semver = require('semver');
 
 function createConnectTimeoutAgent(protocol) {
-    var http = require(protocol);
+    var http = require(`${protocol}`);
     var Agent = http.Agent;
 
     // Many concurrent connections to the same host
