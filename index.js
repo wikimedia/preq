@@ -195,6 +195,16 @@ Request.prototype.run = function () {
             var response = responses[0];
             var body = responses[1]; // decompressed
 
+            if (response.headers) {
+                // Lowecase all the headers names we've got from backend services
+                Object.keys(response.headers).forEach(function(header) {
+                    if (header.toLowerCase() !== header) {
+                        response.headers[header.toLowerCase()] = response.headers[header];
+                        delete response.headers[header];
+                    }
+                });
+            }
+
             if (self.options.gzip && response.headers) {
                 delete response.headers['content-encoding'];
                 delete response.headers['content-length'];
