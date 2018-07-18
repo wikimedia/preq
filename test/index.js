@@ -10,6 +10,9 @@ require('mocha-eslint')([ '.' ]);
 describe('preq', function() {
     this.timeout(30000); // eslint-disable no-invalid-this
 
+    it('throws with undefined options', () =>
+        assert.throws(() => preq(), Error, 'Must throw if options not provided'));
+
     it('should retry', () => {
         const api = nock('https://en.wikipedia.org')
         .get('/wiki/Main_Page')
@@ -198,6 +201,116 @@ describe('preq', function() {
         .then((res) => {
             assert.equal(res.status, 200);
             assert.equal(res.headers['content-encoding'], undefined);
+            assert.equal(res.body, MOCK_BODY);
+        })
+        .then(() => api.done())
+        .finally(() => nock.cleanAll());
+    });
+
+    it('parse json', () => {
+        const api = nock('https://en.wikipedia.org')
+        .get('/wiki/Main_Page')
+        .reply(200, { test: 'test' }, { 'content-type': 'application/json' });
+        return preq('https://en.wikipedia.org/wiki/Main_Page')
+        .then((res) => {
+            assert.equal(res.status, 200);
+            assert.equal(res.body.test, 'test');
+        })
+        .then(() => api.done())
+        .finally(() => nock.cleanAll());
+    });
+
+    it('resolve relative redirects', () => {
+        const MOCK_BODY = 'Main_Wiki_Page_HTML';
+        const api = nock('https://en.wikipedia.org')
+        .get('/')
+        .reply(301, undefined, { 'location': '/wiki/Main_Page' })
+        .get('/wiki/Main_Page')
+        .reply(200, MOCK_BODY, { 'content-location': '/wiki/Main_Page' });
+        return preq('https://en.wikipedia.org')
+        .then((res) => {
+            assert.equal(res.status, 200);
+            assert.equal(res.headers['content-location'],
+                'https://en.wikipedia.org/wiki/Main_Page');
+            assert.equal(res.body, MOCK_BODY);
+        })
+        .then(() => api.done())
+        .finally(() => nock.cleanAll());
+    });
+
+    it('remove body for 204 requests', () => {
+        const api = nock('https://en.wikipedia.org')
+        .get('/wiki/Main_Page')
+        .reply(204, "SOME_ERRORNEOUS_BODY");
+        return preq('https://en.wikipedia.org/wiki/Main_Page')
+        .then((res) => {
+            assert.equal(res.status, 204);
+            assert.equal(res.body, undefined);
+        })
+        .then(() => api.done())
+        .finally(() => nock.cleanAll());
+    });
+
+    it('lowecase request headers', () => {
+        const MOCK_BODY = 'Main_Wiki_Page_HTML';
+        const api = nock('https://en.wikipedia.org', {
+            reqheaders: {
+                'cache-control': 'no-cache',
+                'x-request-id': 'test_id'
+            }
+        })
+        .get('/wiki/Main_Page')
+        .reply(200, MOCK_BODY);
+        return preq({
+            uri: 'https://en.wikipedia.org/wiki/Main_Page',
+            headers: {
+                'Cache-Control': 'no-cache',
+                'x-request-id': 'test_id'
+            }
+        })
+        .then((res) => {
+            assert.equal(res.status, 200);
+            assert.equal(res.body, MOCK_BODY);
+        })
+        .then(() => api.done())
+        .finally(() => nock.cleanAll());
+    });
+
+    it('sends JSON', () => {
+        const MOCK_BODY = 'Main_Wiki_Page_HTML';
+        const MOCK_REQ = { test: 'test' };
+        const api = nock('https://en.wikipedia.org')
+        .post('/wiki/Main_Page', JSON.stringify(MOCK_REQ))
+        .reply(200, MOCK_BODY);
+        return preq({
+            method: 'post',
+            uri: 'https://en.wikipedia.org/wiki/Main_Page',
+            headers: {
+                'content-type': 'application/json'
+            },
+            body: MOCK_REQ
+        })
+        .then((res) => {
+            assert.equal(res.status, 200);
+            assert.equal(res.body, MOCK_BODY);
+        })
+        .then(() => api.done())
+        .finally(() => nock.cleanAll());
+    });
+
+    it('sends form', () => {
+        const MOCK_BODY = 'Main_Wiki_Page_HTML';
+        const MOCK_REQ = { test: 'test' };
+        const api = nock('https://en.wikipedia.org')
+        .post('/wiki/Main_Page', 'test=test')
+        .reply(200, MOCK_BODY);
+        return preq({
+            method: 'post',
+            uri: 'https://en.wikipedia.org/wiki/Main_Page',
+            body: MOCK_REQ
+        })
+        .then((res) => {
+            assert.equal(res.status, 200);
             assert.equal(res.body, MOCK_BODY);
         })
         .then(() => api.done())
