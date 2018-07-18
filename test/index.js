@@ -1,103 +1,173 @@
-var preq = require('../index');
-var assert = require('assert');
+'use strict';
 
-// mocha defines to avoid JSHint breakage
-/* global describe, it, before, beforeEach, after, afterEach */
+const nock = require('nock');
+const zlib = require('zlib');
+const preq = require('../index');
+const assert = require('assert');
+
+require('mocha-eslint')([ '.' ]);
 
 describe('preq', function() {
-    this.timeout(30000);
-    it('should retry', function() {
-        var tStart = new Date();
+    this.timeout(30000); // eslint-disable no-invalid-this
+
+    it('should retry', () => {
+        const api = nock('https://en.wikipedia.org')
+        .get('/wiki/Main_Page')
+        .times(4)
+        .replyWithError('Error');
+        const tStart = new Date();
         return preq.get({
             // Some unreachable port
-            uri: 'http://localhost:1/',
+            uri: 'https://en.wikipedia.org/wiki/Main_Page',
             retries: 4
         })
-        .catch(function(e) {
+        .catch((e) => {
             assert.equal(e.status, 504);
-            var tDelta = new Date() - tStart;
-            if (tDelta < 3150) {
+            const tDelta = new Date() - tStart;
+            if (tDelta < 1500) {
                 throw new Error("Does not look as if this actually retried!");
             }
-        });
+        })
+        .then(() => api.done())
+        .finally(() => nock.cleanAll());
     });
-    it('get enwiki front page', function() {
+
+    it('should get enwiki front page', () => {
+        const MOCK_BODY = 'Main_Wiki_Page_HTML';
+        const api = nock('https://en.wikipedia.org')
+        .get('/wiki/Main_Page')
+        .reply(200, MOCK_BODY);
         return preq.get({
             uri: 'https://en.wikipedia.org/wiki/Main_Page',
         })
-        .then(function(res) {
+        .then((res) => {
             assert.equal(res.status, 200);
             assert.equal(!!res.body, true);
             // Make sure content-location is not set
             assert.equal(!!res.headers['content-location'], false);
-        });
-    });
-    it('get google.com, check for redirect', function() {
-        return preq.get({
-            uri: 'https://en.wikipedia.org/',
-            retries: 2
+            assert.equal(res.body, MOCK_BODY);
         })
-        .then(function(res) {
-            assert.equal(res.status, 200);
-            assert.equal(!!res.body, true);
-            assert.equal(res.headers['content-location'],
-                    'https://en.wikipedia.org/wiki/Main_Page');
-        });
+        .then(() => api.done())
+        .finally(() => nock.cleanAll());
     });
-    it('get google.com with query', function() {
+
+    it('should check for redirect', () => {
+        const MOCK_BODY = 'Main_Wiki_Page_HTML';
+        const api = nock('https://en.wikipedia.org')
+        .get('/')
+        .reply(301, undefined, { location: 'https://en.wikipedia.org/wiki/Main_Page' })
+        .get('/wiki/Main_Page')
+        .reply(200, MOCK_BODY);
         return preq.get({
-            uri: 'http://google.com/',
+            uri: 'https://en.wikipedia.org/'
+        })
+        .then((res) => {
+            assert.equal(res.status, 200);
+            assert.equal(res.headers['content-location'],
+                'https://en.wikipedia.org/wiki/Main_Page');
+            assert.equal(res.body, MOCK_BODY);
+        })
+        .then(() => api.done())
+        .finally(() => nock.cleanAll());
+    });
+
+    it('should support query', () => {
+        const MOCK_BODY = 'Main_Wiki_Page_HTML';
+        const api = nock('https://en.wikipedia.org')
+        .get('/wiki/Main_Page')
+        .query({ q : 'foo' })
+        .reply(200, MOCK_BODY);
+        return preq.get({
+            uri: 'https://en.wikipedia.org/wiki/Main_Page',
             query: {
                 q: 'foo'
             }
         })
-        .then(function(res) {
+        .then((res) => {
             assert.equal(res.status, 200);
-            assert.equal(!!res.body, true);
-        });
+            assert.equal(res.body, MOCK_BODY);
+        })
+        .then(() => api.done())
+        .finally(() => nock.cleanAll());
     });
-    it('get google.com, simple constructor style', function() {
-        return preq('http://google.com/')
-        .then(function(res) {
+
+    it('should support simple constructor style', () => {
+        const MOCK_BODY = 'Main_Wiki_Page_HTML';
+        const api = nock('https://en.wikipedia.org')
+        .get('/wiki/Main_Page')
+        .reply(200, MOCK_BODY);
+        return preq('https://en.wikipedia.org/wiki/Main_Page')
+        .then((res) => {
             assert.equal(res.status, 200);
-            assert.equal(!!res.body, true);
-        });
+            assert.equal(res.body, MOCK_BODY);
+        })
+        .then(() => api.done())
+        .finally(() => nock.cleanAll());
     });
-    it('get google.com with query, constructor style', function() {
+
+    it('should support simple constructor style with query', () => {
+        const MOCK_BODY = 'Main_Wiki_Page_HTML';
+        const api = nock('https://en.wikipedia.org')
+        .get('/wiki/Main_Page')
+        .query({ q : 'foo' })
+        .reply(200, MOCK_BODY);
         return preq({
             method: 'get',
-            uri: 'http://google.com/',
+            uri: 'https://en.wikipedia.org/wiki/Main_Page',
             query: {
                 q: 'foo'
             }
         })
-        .then(function(res) {
+        .then((res) => {
             assert.equal(res.status, 200);
-            assert.equal(!!res.body, true);
-        });
+            assert.equal(res.body, MOCK_BODY);
+        })
+        .then(() => api.done())
+        .finally(() => nock.cleanAll());
     });
-    it('return buffer on user-supplied encoding', function() {
-        return preq('http://google.com/', {encoding: null})
-        .then(function(res) {
+
+    it('return buffer on user-supplied encoding', () => {
+        const MOCK_BODY = 'Main_Wiki_Page_HTML';
+        const api = nock('https://en.wikipedia.org')
+        .get('/wiki/Main_Page')
+        .reply(200, MOCK_BODY);
+        return preq('https://en.wikipedia.org/wiki/Main_Page', { encoding: null })
+        .then((res) => {
             assert.equal(res.status, 200);
             assert.equal(res.body.constructor.name, 'Buffer');
-        });
+        })
+        .then(() => api.done())
+        .finally(() => nock.cleanAll());
     });
-    it('return string with no encoding', function() {
-        return preq('http://google.com/')
-        .then(function(res) {
-            assert.equal(res.status, 200);
-            assert.equal(typeof res.body, 'string');
-        });
-    });
-    it('no content-encoding header for gzipped responses', function() {
+
+    it('no content-encoding header for gzipped responses', () => {
+        const MOCK_BODY = 'Main_Wiki_Page_HTML';
+        const api = nock('https://en.wikipedia.org')
+        .get('/wiki/Main_Page')
+        .reply(200, zlib.gzipSync(Buffer.from(MOCK_BODY)), { 'content-encoding': 'gzip' });
         return preq({
-            uri: 'https://en.wikipedia.org/api/rest_v1/page/html/Foobar',
+            uri: 'https://en.wikipedia.org/wiki/Main_Page',
             gzip: true
-        }).then(function(res) {
+        })
+        .then((res) => {
             assert.equal(res.status, 200);
             assert.equal(res.headers['content-encoding'], undefined);
-        });
+            assert.equal(res.body, MOCK_BODY);
+        })
+        .then(() => api.done())
+        .finally(() => nock.cleanAll());
     });
+
+    it('request some real content, no nock', () => preq('https://en.wikipedia.org/wiki/Main_Page')
+    .then((res) => {
+        assert.equal(res.status, 200);
+        assert.equal(!!res.body, true);
+    }));
+
+    it('timeout with connect timeout', () => preq({
+        uri: 'http://localhost:12345',
+        connectTimeout: 1
+    })
+    .catch(e => assert.equal(e.status, 504)));
 });
 
