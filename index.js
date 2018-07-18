@@ -3,6 +3,7 @@
 const P = require('bluebird');
 const url = require('url');
 const querystring = require('querystring');
+const request = require('requestretry');
 
 function createConnectTimeoutAgent(protocol) {
     const http = require(`${protocol}`);
@@ -37,8 +38,6 @@ const defaultAgentOptions = {
 };
 const httpAgentClass = createConnectTimeoutAgent('http');
 const httpsAgentClass = createConnectTimeoutAgent('https');
-
-const request = P.promisify(require('request'), { multiArgs: true });
 
 function getOptions(uri, o, method) {
     if (!o || o.constructor !== Object) {
@@ -75,7 +74,9 @@ function getOptions(uri, o, method) {
     if ((o.method === 'get' || o.method === 'put')
         && o.retries === undefined) {
         // Idempotent methods: Retry once by default
-        o.retries = 1;
+        o.maxAttempts = 2;
+    } else {
+        o.maxAttempts = o.retries + 1;
     }
 
     if (o.query) {
@@ -131,119 +132,98 @@ class HTTPError extends Error {
 class Request {
     constructor(method, url, options) {
         this.options = getOptions(url, options, method);
-        this.retries = this.options.retries;
-        this.timeout = this.options.timeout;
         this.delay = 100; // start with 100ms
-    }
-
-    retry(err) {
-        if (this.retries) {
-            this.retries--;
+        this.options.delayStrategy = () => {
             // exponential backoff with some fuzz, but start with a short delay
+            const delay = this.delay;
             this.delay = this.delay * 2 + this.delay * Math.random();
-            // grow the timeout linearly, plus some fuzz
-            this.timeout += this.options.timeout + Math.random() * this.options.timeout;
-
-            return P.bind(this)
-            .delay(this.delay)
-            .then(this.run);
-        } else {
-            throw err;
-        }
+            return delay;
+        };
+        this.options.promiseFactory = resolver => new P(resolver);
+        this.options.retryStrategy = (err, response) => {
+            if (response && response.statusCode === 503
+                    && /^[0-9]+$/.test(response.headers['retry-after'])) {
+                this.delay = parseInt(response.headers['retry-after'], 10) * 1000;
+                return true;
+            }
+            return request.RetryStrategies.HTTPOrNetworkError(err, response);
+        };
     }
 
     run() {
-        return P.try(() => request(this.options))
-        .bind(this)
-        .then((responses) => {
-            if (!responses || responses.length < 2) {
-                return this.retry(new HTTPError({
-                    status: 502,
-                    body: {
-                        type: 'empty_response',
-                    }
-                }));
-            } else {
-                const response = responses[0];
-                let body = responses[1]; // decompressed
+        return request(this.options)
+        .then((response) => {
+            let body = response.body;
+            if (this.options.gzip && response.headers) {
+                delete response.headers['content-encoding'];
+                delete response.headers['content-length'];
+            }
 
-                if (this.options.gzip && response.headers) {
-                    delete response.headers['content-encoding'];
+            if (body && response.headers && !this.options._encodingProvided) {
+                const contentType = response.headers['content-type'];
+                // Decodes:  "text/...", "application/json...", "application/vnd.geo+json..."
+                if (/^text\/|application\/([^+;]+\+)?json\b/.test(contentType)) {
+                    // Convert buffer to string
+                    body = body.toString();
                     delete response.headers['content-length'];
                 }
 
-                if (body && response.headers && !this.options._encodingProvided) {
-                    const contentType = response.headers['content-type'];
-                    // Decodes:  "text/...", "application/json...", "application/vnd.geo+json..."
-                    if (/^text\/|application\/([^+;]+\+)?json\b/.test(contentType)) {
-                        // Convert buffer to string
-                        body = body.toString();
-                        delete response.headers['content-length'];
-                    }
-
-                    if (/^application\/([^+;]+\+)?json\b/.test(contentType)) {
-                        body = JSON.parse(body);
-                    }
-                }
-
-                // 204, 205 and 304 responses must not contain any body
-                if (response.statusCode === 204 || response.statusCode === 205
-                    || response.statusCode === 304) {
-                    body = undefined;
-                }
-
-                const res = {
-                    status: response.statusCode,
-                    headers: response.headers,
-                    body
-                };
-
-                // Check if we were redirected
-                let origURI = this.options.uri;
-                if (this.options.qs && Object.keys(this.options.qs).length) {
-                    origURI += `?${querystring.stringify(this.options.qs)}`;
-                }
-
-                if (origURI !== response.request.uri.href
-                    && url.format(origURI) !== response.request.uri.href) {
-                    if (!res.headers['content-location']) {
-                        // Indicate the redirect via an injected Content-Location
-                        // header
-                        res.headers['content-location'] = response.request.uri.href;
-                    } else {
-                        // Make sure that we resolve the returned content-location
-                        // relative to the last request URI
-                        res.headers['content-location'] = url.parse(response.request.uri)
-                        .resolve(res.headers['content-location']);
-                    }
-                }
-
-                if (res.status >= 400) {
-                    if (res.status === 503 && /^[0-9]+$/.test(response.headers['retry-after'])) {
-                        const retryAfter = parseInt(response.headers['retry-after'], 10) * 1000;
-                        if (retryAfter < this.options.timeout) {
-                            this.delay = retryAfter;
-                            return this.retry(new HTTPError(res));
-                        }
-                    }
-                    throw new HTTPError(res);
-                } else {
-                    return res;
+                if (/^application\/([^+;]+\+)?json\b/.test(contentType)) {
+                    body = JSON.parse(body);
                 }
             }
-        },
-        err => this.retry(new HTTPError({
-            status: 504,
-            body: {
-                type: 'internal_http_error',
-                description: err.toString(),
-                error: err,
-                stack: err.stack,
-                uri: this.options.uri,
-                method: this.options.method,
-            },
-            stack: err.stack
-        })));
+
+            // 204, 205 and 304 responses must not contain any body
+            if (response.statusCode === 204 || response.statusCode === 205
+                || response.statusCode === 304) {
+                body = undefined;
+            }
+
+            const res = {
+                status: response.statusCode,
+                headers: response.headers,
+                body
+            };
+
+            // Check if we were redirected
+            let origURI = this.options.uri;
+            if (this.options.qs && Object.keys(this.options.qs).length) {
+                origURI += `?${querystring.stringify(this.options.qs)}`;
+            }
+
+            if (origURI !== response.request.uri.href
+                && url.format(origURI) !== response.request.uri.href) {
+                if (!res.headers['content-location']) {
+                    // Indicate the redirect via an injected Content-Location
+                    // header
+                    res.headers['content-location'] = response.request.uri.href;
+                } else {
+                    // Make sure that we resolve the returned content-location
+                    // relative to the last request URI
+                    res.headers['content-location'] = url.parse(response.request.uri)
+                    .resolve(res.headers['content-location']);
+                }
+            }
+
+            if (res.status >= 400) {
+                throw new HTTPError(res);
+            } else {
+                return res;
+            }
+        }, (err) => {
+            throw new HTTPError({
+                status: err.status || 504,
+                body: {
+                    type: 'internal_http_error',
+                    description: err.toString(),
+                    error: err,
+                    stack: err.stack,
+                    uri: this.options.uri,
+                    method: this.options.method,
+                },
+                stack: err.stack
+            });
+        });
     }
 }
 

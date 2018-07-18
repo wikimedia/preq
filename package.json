@@ -15,7 +15,8 @@
   },
   "dependencies": {
     "bluebird": "^3.5.1",
-    "request": "^2.87.0"
+    "request": "^2.87.0",
+    "requestretry": "^2.0.0"
   },
   "devDependencies": {
     "coveralls": "^3.0.1",
