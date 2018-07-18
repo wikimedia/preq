@@ -13,8 +13,8 @@ describe('preq', function() {
     it('should retry', () => {
         const api = nock('https://en.wikipedia.org')
         .get('/wiki/Main_Page')
-        .times(4)
-        .replyWithError('Error');
+        .times(5)
+        .reply(504, '');
         const tStart = new Date();
         return preq.get({
             // Some unreachable port
@@ -24,8 +24,54 @@ describe('preq', function() {
         .catch((e) => {
             assert.equal(e.status, 504);
             const tDelta = new Date() - tStart;
-            if (tDelta < 1500) {
+            if (tDelta < 1000) {
                 throw new Error("Does not look as if this actually retried!");
+            }
+        })
+        .then(() => api.done())
+        .finally(() => nock.cleanAll());
+    });
+
+    it('should not retry 404', () => {
+        const api = nock('https://en.wikipedia.org')
+        .get('/wiki/Main_Page')
+        .reply(404, '');
+        const tStart = new Date();
+        return preq.get({
+            // Some unreachable port
+            uri: 'https://en.wikipedia.org/wiki/Main_Page',
+            retries: 4
+        })
+        .catch((e) => {
+            assert.equal(e.status, 404);
+            const tDelta = new Date() - tStart;
+            if (tDelta > 1000) {
+                throw new Error("Looks like this was actually retried!");
+            }
+        })
+        .then(() => api.done())
+        .finally(() => nock.cleanAll());
+    });
+
+    it('should respect retry-after', () => {
+        const MOCK_BODY = 'Main_Wiki_Page_HTML';
+        const api = nock('https://en.wikipedia.org')
+        .get('/wiki/Main_Page')
+        .reply(503, '', { 'retry-after': 3 })
+        .get('/wiki/Main_Page')
+        .reply(200, MOCK_BODY);
+        const tStart = new Date();
+        return preq.get({
+            // Some unreachable port
+            uri: 'https://en.wikipedia.org/wiki/Main_Page',
+            retries: 1
+        })
+        .then((res) => {
+            assert.equal(res.status, 200);
+            assert.equal(res.body, MOCK_BODY);
+            const tDelta = new Date() - tStart;
+            if (tDelta < 2500) {
+                throw new Error("retry-after was not respected");
             }
         })
         .then(() => api.done())
