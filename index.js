@@ -1,4 +1,4 @@
-"use strict";
+'use strict';
 
 const P = require('bluebird');
 const url = require('url');
@@ -71,8 +71,7 @@ function getOptions(uri, o, method) {
         }
     }
 
-    if ((o.method === 'get' || o.method === 'put')
-        && o.retries === undefined) {
+    if ((o.method === 'get' || o.method === 'put') && o.retries === undefined) {
         // Idempotent methods: Retry once by default
         o.maxAttempts = 2;
     } else {
@@ -89,8 +88,8 @@ function getOptions(uri, o, method) {
         o.timeout = 2 * 60 * 1000; // 2 minutes
     }
 
-    if ((o.headers && /\bgzip\b/.test(o.headers['accept-encoding']))
-        || (o.gzip === undefined && o.method === 'get')) {
+    if ((o.headers && /\bgzip\b/.test(o.headers['accept-encoding'])) ||
+            (o.gzip === undefined && o.method === 'get')) {
         o.gzip = true;
     }
 
@@ -125,7 +124,6 @@ class HTTPError extends Error {
     }
 }
 
-
 /*
  * Encapsulate the state associated with a single HTTP request
  */
@@ -139,10 +137,10 @@ class Request {
             this.delay = this.delay * 2 + this.delay * Math.random();
             return delay;
         };
-        this.options.promiseFactory = resolver => new P(resolver);
+        this.options.promiseFactory = (resolver) => new P(resolver);
         this.options.retryStrategy = (err, response) => {
-            if (response && response.statusCode === 503
-                    && /^[0-9]+$/.test(response.headers['retry-after'])) {
+            if (response && response.statusCode === 503 &&
+                    /^[0-9]+$/.test(response.headers['retry-after'])) {
                 this.delay = parseInt(response.headers['retry-after'], 10) * 1000;
                 return true;
             }
@@ -174,8 +172,8 @@ class Request {
             }
 
             // 204, 205 and 304 responses must not contain any body
-            if (response.statusCode === 204 || response.statusCode === 205
-                || response.statusCode === 304) {
+            if (response.statusCode === 204 || response.statusCode === 205 ||
+                    response.statusCode === 304) {
                 body = undefined;
             }
 
@@ -191,8 +189,8 @@ class Request {
                 origURI += `?${querystring.stringify(this.options.qs)}`;
             }
 
-            if (origURI !== response.request.uri.href
-                && url.format(origURI) !== response.request.uri.href) {
+            if (origURI !== response.request.uri.href &&
+                url.format(origURI) !== response.request.uri.href) {
                 if (!res.headers['content-location']) {
                     // Indicate the redirect via an injected Content-Location
                     // header
@@ -219,7 +217,7 @@ class Request {
                     error: err,
                     stack: err.stack,
                     uri: this.options.uri,
-                    method: this.options.method,
+                    method: this.options.method
                 },
                 stack: err.stack
             });
