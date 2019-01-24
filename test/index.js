@@ -5,8 +5,6 @@ const zlib = require('zlib');
 const preq = require('../index');
 const assert = require('assert');
 
-require('mocha-eslint')([ '.' ]);
-
 describe('preq', function() {
     this.timeout(30000); // eslint-disable no-invalid-this
 
