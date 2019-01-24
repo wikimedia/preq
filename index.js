@@ -71,8 +71,7 @@ function getOptions(uri, o, method) {
         }
     }
 
-    if ((o.method === 'get' || o.method === 'put') &&
-        o.retries === undefined) {
+    if ((o.method === 'get' || o.method === 'put') && o.retries === undefined) {
         // Idempotent methods: Retry once by default
         o.maxAttempts = 2;
     } else {
@@ -90,7 +89,7 @@ function getOptions(uri, o, method) {
     }
 
     if ((o.headers && /\bgzip\b/.test(o.headers['accept-encoding'])) ||
-        (o.gzip === undefined && o.method === 'get')) {
+            (o.gzip === undefined && o.method === 'get')) {
         o.gzip = true;
     }
 
@@ -174,7 +173,7 @@ class Request {
 
             // 204, 205 and 304 responses must not contain any body
             if (response.statusCode === 204 || response.statusCode === 205 ||
-                response.statusCode === 304) {
+                    response.statusCode === 304) {
                 body = undefined;
             }
 
