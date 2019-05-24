@@ -54,6 +54,11 @@ function getOptions(uri, o, method) {
         o.uri = uri;
     }
     o.uri = o.uri || o.url;
+    if (!o.uri || o.uri.toString() === '') {
+        throw new Error('No URL supplied to the request!');
+    }
+    o.uri = o.uri.toString();
+    delete o.url;
     o.method = method;
     o.headers = o.headers || {};
     Object.keys(o.headers).forEach((header) => {
