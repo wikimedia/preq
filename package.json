@@ -1,6 +1,6 @@
 {
   "name": "preq",
-  "version": "0.5.7",
+  "version": "0.5.8",
   "description": "Yet another promising request wrapper",
   "main": "index.js",
   "scripts": {
@@ -27,7 +27,8 @@
     "istanbul": "^0.4.5",
     "mocha": "^5.2.0",
     "mocha-lcov-reporter": "^1.3.0",
-    "nock": "^10.0.1"
+    "nock": "^10.0.1",
+    "swagger-router": "^0.7.3"
   },
   "repository": {
     "type": "git",

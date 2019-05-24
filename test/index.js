@@ -3,6 +3,7 @@
 const nock = require('nock');
 const zlib = require('zlib');
 const preq = require('../index');
+const Template = require('swagger-router').Template;
 const assert = require('assert');
 
 describe('preq', function() {
@@ -10,6 +11,23 @@ describe('preq', function() {
 
     it('throws with undefined options', () =>
         assert.throws(() => preq(), Error, 'Must throw if options not provided'));
+
+    it('throws without URI', () =>
+        assert.throws(() => preq({ method: get }), Error, 'Must throw if URI not provided'));
+
+    it('accepts swagger-router requests', () => {
+        const api = nock('https://en.wikibooks.org')
+        .get('/wiki/Main_Page')
+        .reply(200, '');
+        const reqTpl = new Template({
+            uri: 'http://{{domain}}/wiki/Main_Page',
+            method: 'get'
+        });
+        const p = preq(reqTpl.expand({
+            request: { params: { domain: 'en.wikibooks.org' }}
+        })).then(res => assert.deepEqual(res.status, 200))
+        .then(() => api.done()).finally(() => nock.cleanAll());
+    });
 
     it('should retry', () => {
         const api = nock('https://en.wikipedia.org')
