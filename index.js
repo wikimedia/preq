@@ -121,9 +121,12 @@ class HTTPError extends Error {
         super();
         Error.captureStackTrace(this, HTTPError);
         this.name = this.constructor.name;
-        this.message = response.status.toString();
-        if (response.body && response.body.type) {
-            this.message += `: ${response.body.type}`;
+        const status = response && response.status.toString() || '504';
+        if (!response || !response.body) {
+            this.message = `${status}: http_error`;
+        } else {
+            this.message = response.body.detail || response.body.message ||
+                response.body.description || `${status}: ${response.body.type || 'http_error'}`;
         }
         Object.assign(this, response);
     }
