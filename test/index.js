@@ -116,6 +116,44 @@ describe('preq', function() {
         .finally(() => nock.cleanAll());
     });
 
+    it('Should wrap 504 in HTTPrror', () => {
+        const MOCK_ERR = 'TEST_ERROR';
+        const api = nock('https://en.wikipedia.org')
+        .get('/wiki/Main_Page')
+        .replyWithError(MOCK_ERR);
+        return preq.get({
+            uri: 'https://en.wikipedia.org/wiki/Main_Page'
+        })
+        .catch((e) => {
+            api.done();
+            assert.strictEqual(e.constructor.name, 'HTTPError');
+            assert.strictEqual(e.headers['content-type'], 'application/problem+json');
+            assert.strictEqual(e.body.internalURI, 'https://en.wikipedia.org/wiki/Main_Page');
+            assert.strictEqual(e.body.internalErr, MOCK_ERR);
+        })
+        .finally(() => nock.cleanAll());
+    });
+
+
+    it('Should wrap 404 in HTTPrror', () => {
+        const api = nock('https://en.wikipedia.org')
+        .get('/wiki/Main_Page')
+        .reply(404, JSON.stringify({ message: 'TEST_MESSAGE' }), {
+            'content-type': 'application/problem+json'
+        });
+        return preq.get({
+            uri: 'https://en.wikipedia.org/wiki/Main_Page'
+        })
+        .catch((e) => {
+            api.done();
+            assert.strictEqual(e.constructor.name, 'HTTPError');
+            assert.strictEqual(e.headers['content-type'], 'application/problem+json');
+            assert.strictEqual(e.body.internalURI, 'https://en.wikipedia.org/wiki/Main_Page');
+            assert.strictEqual(e.body.internalErr.message, 'TEST_MESSAGE');
+        })
+        .finally(() => nock.cleanAll());
+    });
+
     it('should check for redirect', () => {
         const MOCK_BODY = 'Main_Wiki_Page_HTML';
         const api = nock('https://en.wikipedia.org')

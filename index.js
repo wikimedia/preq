@@ -212,22 +212,34 @@ class Request {
             }
 
             if (res.status >= 400) {
-                throw new HTTPError(res);
+                throw new HTTPError({
+                    status: res.status,
+                    headers: {
+                        'content-type': (res.headers && res.headers['content-type']) ||
+                            'application/problem+json'
+                    },
+                    body: {
+                        internalErr: res.body,
+                        internalURI: this.options.uri.toString(),
+                        internalMethod: this.options.method
+                    }
+                });
             } else {
                 return res;
             }
         }, (err) => {
             throw new HTTPError({
                 status: err.status || 504,
+                headers: {
+                    'content-type': 'application/problem+json'
+                },
                 body: {
                     type: 'internal_http_error',
-                    description: err.toString(),
-                    error: err,
-                    stack: err.stack,
-                    uri: this.options.uri,
-                    method: this.options.method
-                },
-                stack: err.stack
+                    internalStack: err.stack,
+                    internalURI: this.options.uri.toString(),
+                    internalErr: err.message,
+                    internalMethod: this.options.method
+                }
             });
         });
     }
