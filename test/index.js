@@ -25,7 +25,7 @@ describe('preq', function() {
         });
         const p = preq(reqTpl.expand({
             request: { params: { domain: 'en.wikibooks.org' }}
-        })).then(res => assert.deepEqual(res.status, 200))
+        })).then(res => assert.strictEqual(res.status, 200))
         .then(() => api.done()).finally(() => nock.cleanAll());
     });
 
@@ -41,7 +41,7 @@ describe('preq', function() {
             retries: 4
         })
         .catch((e) => {
-            assert.equal(e.status, 504);
+            assert.strictEqual(e.status, 504);
             const tDelta = new Date() - tStart;
             if (tDelta < 1000) {
                 throw new Error("Does not look as if this actually retried!");
@@ -62,7 +62,7 @@ describe('preq', function() {
             retries: 4
         })
         .catch((e) => {
-            assert.equal(e.status, 404);
+            assert.strictEqual(e.status, 404);
             const tDelta = new Date() - tStart;
             if (tDelta > 1000) {
                 throw new Error("Looks like this was actually retried!");
@@ -86,8 +86,8 @@ describe('preq', function() {
             retries: 1
         })
         .then((res) => {
-            assert.equal(res.status, 200);
-            assert.equal(res.body, MOCK_BODY);
+            assert.strictEqual(res.status, 200);
+            assert.strictEqual(res.body.toString(), MOCK_BODY);
             const tDelta = new Date() - tStart;
             if (tDelta < 2500) {
                 throw new Error("retry-after was not respected");
@@ -106,11 +106,11 @@ describe('preq', function() {
             uri: 'https://en.wikipedia.org/wiki/Main_Page',
         })
         .then((res) => {
-            assert.equal(res.status, 200);
-            assert.equal(!!res.body, true);
+            assert.strictEqual(res.status, 200);
+            assert.strictEqual(!!res.body, true);
             // Make sure content-location is not set
-            assert.equal(!!res.headers['content-location'], false);
-            assert.equal(res.body, MOCK_BODY);
+            assert.strictEqual(!!res.headers['content-location'], false);
+            assert.strictEqual(res.body.toString(   ), MOCK_BODY);
         })
         .then(() => api.done())
         .finally(() => nock.cleanAll());
@@ -165,10 +165,10 @@ describe('preq', function() {
             uri: 'https://en.wikipedia.org/'
         })
         .then((res) => {
-            assert.equal(res.status, 200);
-            assert.equal(res.headers['content-location'],
+            assert.strictEqual(res.status, 200);
+            assert.strictEqual(res.headers['content-location'],
                 'https://en.wikipedia.org/wiki/Main_Page');
-            assert.equal(res.body, MOCK_BODY);
+            assert.strictEqual(res.body.toString(), MOCK_BODY);
         })
         .then(() => api.done())
         .finally(() => nock.cleanAll());
@@ -187,8 +187,8 @@ describe('preq', function() {
             }
         })
         .then((res) => {
-            assert.equal(res.status, 200);
-            assert.equal(res.body, MOCK_BODY);
+            assert.strictEqual(res.status, 200);
+            assert.strictEqual(res.body.toString(), MOCK_BODY);
         })
         .then(() => api.done())
         .finally(() => nock.cleanAll());
@@ -201,8 +201,8 @@ describe('preq', function() {
         .reply(200, MOCK_BODY);
         return preq('https://en.wikipedia.org/wiki/Main_Page')
         .then((res) => {
-            assert.equal(res.status, 200);
-            assert.equal(res.body, MOCK_BODY);
+            assert.strictEqual(res.status, 200);
+            assert.strictEqual(res.body.toString(), MOCK_BODY);
         })
         .then(() => api.done())
         .finally(() => nock.cleanAll());
@@ -222,8 +222,8 @@ describe('preq', function() {
             }
         })
         .then((res) => {
-            assert.equal(res.status, 200);
-            assert.equal(res.body, MOCK_BODY);
+            assert.strictEqual(res.status, 200);
+            assert.strictEqual(res.body.toString(), MOCK_BODY);
         })
         .then(() => api.done())
         .finally(() => nock.cleanAll());
@@ -236,8 +236,8 @@ describe('preq', function() {
         .reply(200, MOCK_BODY);
         return preq('https://en.wikipedia.org/wiki/Main_Page', { encoding: null })
         .then((res) => {
-            assert.equal(res.status, 200);
-            assert.equal(res.body.constructor.name, 'Buffer');
+            assert.strictEqual(res.status, 200);
+            assert.strictEqual(res.body.constructor.name, 'Buffer');
         })
         .then(() => api.done())
         .finally(() => nock.cleanAll());
@@ -253,9 +253,9 @@ describe('preq', function() {
             gzip: true
         })
         .then((res) => {
-            assert.equal(res.status, 200);
-            assert.equal(res.headers['content-encoding'], undefined);
-            assert.equal(res.body, MOCK_BODY);
+            assert.strictEqual(res.status, 200);
+            assert.strictEqual(res.headers['content-encoding'], undefined);
+            assert.strictEqual(res.body.toString(), MOCK_BODY);
         })
         .then(() => api.done())
         .finally(() => nock.cleanAll());
@@ -267,8 +267,8 @@ describe('preq', function() {
         .reply(200, { test: 'test' }, { 'content-type': 'application/json' });
         return preq('https://en.wikipedia.org/wiki/Main_Page')
         .then((res) => {
-            assert.equal(res.status, 200);
-            assert.equal(res.body.test, 'test');
+            assert.strictEqual(res.status, 200);
+            assert.strictEqual(res.body.test, 'test');
         })
         .then(() => api.done())
         .finally(() => nock.cleanAll());
@@ -283,10 +283,10 @@ describe('preq', function() {
         .reply(200, MOCK_BODY, { 'content-location': '/wiki/Main_Page' });
         return preq('https://en.wikipedia.org')
         .then((res) => {
-            assert.equal(res.status, 200);
-            assert.equal(res.headers['content-location'],
+            assert.strictEqual(res.status, 200);
+            assert.strictEqual(res.headers['content-location'],
                 'https://en.wikipedia.org/wiki/Main_Page');
-            assert.equal(res.body, MOCK_BODY);
+            assert.strictEqual(res.body.toString(), MOCK_BODY);
         })
         .then(() => api.done())
         .finally(() => nock.cleanAll());
@@ -298,8 +298,8 @@ describe('preq', function() {
         .reply(204, "SOME_ERRORNEOUS_BODY");
         return preq('https://en.wikipedia.org/wiki/Main_Page')
         .then((res) => {
-            assert.equal(res.status, 204);
-            assert.equal(res.body, undefined);
+            assert.strictEqual(res.status, 204);
+            assert.strictEqual(res.body, undefined);
         })
         .then(() => api.done())
         .finally(() => nock.cleanAll());
@@ -323,8 +323,8 @@ describe('preq', function() {
             }
         })
         .then((res) => {
-            assert.equal(res.status, 200);
-            assert.equal(res.body, MOCK_BODY);
+            assert.strictEqual(res.status, 200);
+            assert.strictEqual(res.body.toString(), MOCK_BODY);
         })
         .then(() => api.done())
         .finally(() => nock.cleanAll());
@@ -345,8 +345,8 @@ describe('preq', function() {
             body: MOCK_REQ
         })
         .then((res) => {
-            assert.equal(res.status, 200);
-            assert.equal(res.body, MOCK_BODY);
+            assert.strictEqual(res.status, 200);
+            assert.strictEqual(res.body.toString(), MOCK_BODY);
         })
         .then(() => api.done())
         .finally(() => nock.cleanAll());
@@ -364,8 +364,8 @@ describe('preq', function() {
             body: MOCK_REQ
         })
         .then((res) => {
-            assert.equal(res.status, 200);
-            assert.equal(res.body, MOCK_BODY);
+            assert.strictEqual(res.status, 200);
+            assert.strictEqual(res.body.toString(), MOCK_BODY);
         })
         .then(() => api.done())
         .finally(() => nock.cleanAll());
@@ -373,14 +373,14 @@ describe('preq', function() {
 
     it('request some real content, no nock', () => preq('https://en.wikipedia.org/wiki/Main_Page')
     .then((res) => {
-        assert.equal(res.status, 200);
-        assert.equal(!!res.body, true);
+        assert.strictEqual(res.status, 200);
+        assert.strictEqual(!!res.body, true);
     }));
 
     it('timeout with connect timeout', () => preq({
         uri: 'http://localhost:12345',
         connectTimeout: 1
     })
-    .catch(e => assert.equal(e.status, 504)));
+    .catch(e => assert.strictEqual(e.status, 504)));
 });
 
