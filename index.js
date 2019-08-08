@@ -214,15 +214,13 @@ class Request {
             if (res.status >= 400) {
                 throw new HTTPError({
                     status: res.status,
-                    headers: {
-                        'content-type': (res.headers && res.headers['content-type']) ||
-                            'application/problem+json'
-                    },
-                    body: {
-                        internalErr: res.body,
+                    headers: Object.assign({
+                        'content-type': 'application/problem+json'
+                    }, res.headers || {}),
+                    body: Object.assign(res.body, {
                         internalURI: this.options.uri.toString(),
                         internalMethod: this.options.method
-                    }
+                    })
                 });
             } else {
                 return res;
@@ -235,6 +233,7 @@ class Request {
                 },
                 body: {
                     type: 'internal_http_error',
+                    detail: err.message,
                     internalStack: err.stack,
                     internalURI: this.options.uri.toString(),
                     internalErr: err.message,

@@ -135,7 +135,7 @@ describe('preq', function() {
     });
 
 
-    it('Should wrap 404 in HTTPrror', () => {
+    it('Should wrap 404 in HTTPError', () => {
         const api = nock('https://en.wikipedia.org')
         .get('/wiki/Main_Page')
         .reply(404, JSON.stringify({ message: 'TEST_MESSAGE' }), {
@@ -148,8 +148,8 @@ describe('preq', function() {
             api.done();
             assert.strictEqual(e.constructor.name, 'HTTPError');
             assert.strictEqual(e.headers['content-type'], 'application/problem+json');
+            assert.strictEqual(e.body.message, 'TEST_MESSAGE');
             assert.strictEqual(e.body.internalURI, 'https://en.wikipedia.org/wiki/Main_Page');
-            assert.strictEqual(e.body.internalErr.message, 'TEST_MESSAGE');
         })
         .finally(() => nock.cleanAll());
     });
