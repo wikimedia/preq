@@ -212,12 +212,25 @@ class Request {
             }
 
             if (res.status >= 400) {
+                body = body || {};
+                if (Buffer.isBuffer(body) || body.constructor === String) {
+                    body = body.toString();
+                }
+                if (typeof body === 'string') {
+                    // try to parse it
+                    try {
+                        body = JSON.parse(body);
+                    } catch (e) {
+                        // not valid JSON, just include it as-is
+                        body = { detail: body };
+                    }
+                }
                 throw new HTTPError({
                     status: res.status,
                     headers: Object.assign({
                         'content-type': 'application/problem+json'
                     }, res.headers || {}),
-                    body: Object.assign(res.body, {
+                    body: Object.assign(body, {
                         internalURI: this.options.uri.toString(),
                         internalMethod: this.options.method
                     })
