@@ -239,6 +239,10 @@ class Request {
                 return res;
             }
         }, (err) => {
+            let query = this.options.qs;
+            if (typeof query === 'object') {
+                query = JSON.stringify(query);
+            }
             throw new HTTPError({
                 status: err.status || 504,
                 headers: {
@@ -249,6 +253,7 @@ class Request {
                     detail: err.message,
                     internalStack: err.stack,
                     internalURI: this.options.uri.toString(),
+                    internalQuery: query,
                     internalErr: err.message,
                     internalMethod: this.options.method
                 }
