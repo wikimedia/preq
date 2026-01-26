@@ -1,6 +1,8 @@
-# preq [![Build Status](https://travis-ci.org/wikimedia/preq.svg?branch=master)](https://travis-ci.org/wikimedia/preq)
+# preq
 
-Yet another promising [request](https://github.com/request/request) wrapper.
+This library is deprecated, as it is a wrapper around the deprecated [request](https://github.com/request/request) library. 
+
+Preq can be replaced with fetch, which is available from Node 18 as an experimental feature. 
 
 ## Features
 - ES6 `Promise`-based, using the excellent
